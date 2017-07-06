@@ -47,6 +47,10 @@
 <script type="text/x-red" data-help-name="ontology">
 
     <p>Ontology Node</p>
+    <p>
+        NOTE: There is minimal human error checking on this node.  For instance, if you create two properties with the same name,
+        the last will overwrite all others, which could lead to some confusing results.
+    </p>
 
 </script>
 
@@ -91,7 +95,6 @@
         {
             "name": "Index?",
             "template": function (a) {
-                console.log(a)
                 return "<input type='checkbox' "+(!!a?"checked":"")+"></input>"
             },
             "value": function (a) {
@@ -132,7 +135,7 @@
         var _newRow = $("<tr>" +
             columnsDef.map(function (c,i) {
                 c.template = c.template || function (a) { return "<input type='text' value='"+a+"'></input>" }
-                return "<td>" + c.template(values[c.name]) + "</td>"
+                return "<td>" + c.template(values[c.name]||"") + "</td>"
             })
             + "</tr>");
         $("#Properties").append(_newRow);

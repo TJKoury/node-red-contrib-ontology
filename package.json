@@ -1,0 +1,22 @@
+{
+  "name": "red-contrib-ontology",
+  "version": "1.0.0",
+  "description": "Node-Red node for building ontologies",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TJKoury/node-red-contrib-ontology.git"
+  },
+  "keywords": [
+    "node-red"
+  ],
+  "author": "TJKoury",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TJKoury/node-red-contrib-ontology/issues"
+  },
+  "homepage": "https://github.com/TJKoury/node-red-contrib-ontology#readme"
+}

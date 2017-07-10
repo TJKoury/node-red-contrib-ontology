@@ -58,15 +58,17 @@ module.exports = function (RED) {
                 console.log(e)
             }),
             this.knex_client.schema.createTable(node.name, function (table) {
-
-                table.increments();
-                table.string('name');
-                table.timestamps();
+          
+                for(var _prop in node.entity_properties){
+                    var _propv = node.entity_properties[_prop];
+                    console.log(_propv);
+                    //table[_propv["Increments?"]?"increments":]
+                }
             }).catch(function(e){
                 console.log(e);
             })]).then((dbSchema, dropTableResult, createTableResult)=>{
                 
-                console.log(process.pid, process.bingo,process.env.knexStart, new Date())
+                console.log(dbSchema)
             })
 
         }
@@ -80,9 +82,7 @@ module.exports = function (RED) {
         });
 
         this.on("close", function () {
-            if(process.knexStart &&process.env.knexStart[node.name]){
-                deleteprocess.env.knexStart[node.name];
-            }
+           process.env.knexStart.replace(node.name+",", "");
         });
     }
 

@@ -80,13 +80,13 @@
         {
             "name": "Type",
             "template": function (a) {
-                return "<select>" + types.map(function (t) { return "<option "+(a===t?"selected":"")+" value='" + t + "'>" + t + "</option>" }) + "</select>"
+                return "<select id='type'>" + types.map(function (t) { return "<option "+(a===t?"selected":"")+" value='" + t + "'>" + t + "</option>" }) + "</select>"
             }
         },
         {
             "name": "Size",
             "template": function (a) {
-                return "<input type='number'placeholder='8' step='1' min='1' max='2147483647' value='"+a+"'></input>"
+                return "<input id='size' type='number' placeholder='8' step='1' min='1' max='2147483647' value='"+a+"'></input>"
             },
             "value": function (a) {
                 return a.value ? a.value : 8;
@@ -95,19 +95,19 @@
         {
             "name": "Index?",
             "template": function (a) {
-                return "<input type='checkbox' "+(!!a?"checked":"")+"></input>"
+                return "<input id='index' type='checkbox' "+(!!a?"checked":"")+"></input>"
             },
             "value": function (a) {
                 return a.checked;
             }
         },
-        {
+        /*{
             "name": "Default"
-        },
+        },*/
         {
             "name": "Null?",
             "template": function (a) {
-                return "<input type='checkbox' "+(!!a?"checked":"")+"></input>"
+                return "<input id='null' type='checkbox' "+(!!a?"checked":"")+"></input>"
             },
             "value": function (a) {
                 return a.checked;
@@ -116,7 +116,16 @@
         {
             "name": "Unique?",
             "template": function (a) {
-                return "<input type='checkbox' "+(!!a?"checked":"")+"></input>"
+                return "<input id='unique' type='checkbox' "+(!!a?"checked":"")+"></input>"
+            },
+            "value": function (a) {
+                return a.checked;
+            }
+        },
+        {
+            "name": "Increments?",
+            "template": function (a) {
+                return "<input id='increments' type='checkbox' "+(!!a?"checked":"")+"></input>"
             },
             "value": function (a) {
                 return a.checked;
@@ -141,8 +150,20 @@
         $("#Properties").append(_newRow);
         _newRow.find(".removeProperty").on('click', function () {
             $(this).closest('tr').remove();
-        }
-        );
+        });
+        _newRow.find("select").change(function(){
+            window.testElement = $(this);
+            var p = $(this);
+            if(p.attr('id') === 'type'){
+                if(p.val()==="text"){
+                    _newRow.find(":checkbox,#size").prop('disabled', true);
+                    
+                }else{
+                    _newRow.find(":disabled").prop('disabled', false);
+                }
+            }
+            
+        }).trigger('change');
     };
     
     RED.nodes.registerType('ontology', {

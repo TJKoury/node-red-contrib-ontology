@@ -159,8 +159,8 @@
             window.testElement = $(this);
             var p = $(this);
             if(p.attr('id') === 'type'){
-                if(p.val()==="text"){
-                    _newRow.find(":checkbox,#size").prop('disabled', true);
+                if(["text", "boolean", "date","dateTime", "time", "timeStamp","binary", "enum","json", "jsonb","uuid"].indexOf(p.val())>-1){
+                    _newRow.find(":checkbox,#size").prop({'disabled': true,'checked':false}).val("");
                     
                 }else{
                     _newRow.find(":disabled").prop('disabled', false);

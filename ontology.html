@@ -90,7 +90,8 @@
         {
             "name": "Size",
             "template": function (a) {
-                return "<input id='size' type='number' placeholder='8' step='1' min='1' max='2147483647' value='"+a+"'></input>"
+                a = a||8;
+                return "<input id='size' type='number' placeholder='8' default='8' step='1' min='1' max='2147483647' value='"+a+"'></input>"
             },
             "value": function (a) {
                 return a.value ? a.value : 8;

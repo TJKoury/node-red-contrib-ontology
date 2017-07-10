@@ -45,14 +45,29 @@ module.exports = function (RED) {
 
             var file_name = path.resolve(ontology_path, this.name + ".us-ontology");
 
-            this.knex_client = this.knex({
+            node.knex_client = this.knex({
                 client: 'sqlite3',
                 useNullAsDefault: true,
                 connection: {
                     filename: file_name
                 }
             });
+            /* Table Change Detection */
 
+            node.knex_client.schema.raw('SELECT * FROM sqlite_master').then(function(a){
+                var _table = a.filter(z=>{return z.name === node.name});
+                var tt = node.knex_client.schema.createTable(node.name, function (table) {
+                for(var _prop in node.entity_properties){
+                    var _propv = node.entity_properties[_prop];
+                    table[_propv["Increments?"]?"increments":_propv.Type](_propv.Name, _propv["Increments?"]?"increments":_propv.Size);
+                }
+            }).toSQL();
+            /* check if exists, if length >1 there's a problem */
+            console.log(_table[0].sql.toLowerCase(), tt[0].sql.toLowerCase(), _table[0].sql.toLowerCase() ===tt[0].sql.toLowerCase());
+            })
+
+
+            /*
             Promise.all([this.knex_client.schema.raw('SELECT * FROM sqlite_master'),
             this.knex_client.schema.dropTableIfExists(node.name).catch(function(e){
                 console.log(e)
@@ -62,14 +77,14 @@ module.exports = function (RED) {
                 for(var _prop in node.entity_properties){
                     var _propv = node.entity_properties[_prop];
                     console.log(_propv);
-                    //table[_propv["Increments?"]?"increments":]
+                    table[_propv["Increments?"]?"increments":_propv.Type](_propv.Name, _propv["Increments?"]?"increments":_propv.Size);
                 }
             }).catch(function(e){
                 console.log(e);
             })]).then((dbSchema, dropTableResult, createTableResult)=>{
                 
                 console.log(dbSchema)
-            })
+            })*/
 
         }
 

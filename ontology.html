@@ -41,18 +41,21 @@
 
     </div>
     <br/>
-    <div class="form-row">
+    <!--<div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Timestamps?</label>
         <input type="checkbox" style="width:25px" id="node-input-timestamps" placeholder="Timestamps">
-    </div>
+        label for="node-input-name"><i class="fa fa-tag"></i> Auto-Increment ID?</label>
+        <input type="checkbox" style="width:25px" id="node-input-autoincrementid" placeholder="ID">
+    </div>-->
 
 </script>
 
 <script type="text/x-red" data-help-name="ontology">
 
-    <p>Ontology Node</p>
     <p>
-        <b>NOTE: </b>There is minimal human error checking on this node. For instance, if you create two properties with
+        <b>WARNING:</b> Any change to the ontology completely erases the database on disk.  <b>ALL DATA WILL BE LOST.</b>
+        <hr/>
+        <b>NOTE:</b> There is minimal human error checking on this node. For instance, if you create two properties with
         the same name, the last will overwrite all others, which could lead to some confusing results.
     </p>
 
@@ -162,6 +165,9 @@
         }).trigger('change');
     };
     var sToken = '05669d33-00cf-400f-b614-768020c21c50';
+
+
+
     RED.nodes.registerType('ontology', {
         color: '#53A953',
         category: 'function',
@@ -181,6 +187,7 @@
             return this.name ? "node_label_italic" : "";
         },
         oneditprepare: function () {
+
             this.entity_properties.forEach(function (et) {
                 generateRow(et);
             });
@@ -189,6 +196,7 @@
             }));
             $("#addProperty").click(generateRow);
             $(".editor-tray").css({ "width": "1000px" });
+
             $.ajax({
                 method: "GET",
                 headers: {
@@ -197,13 +205,14 @@
                 dataType: "json",
                 cache: false,
                 headers: { "Authorization": "Bearer " + RED.settings.get("auth-tokens").access_token },
-                url: './ontology-node'+sToken,
+                url: './ontology-node'+sToken+"?name="+this.name,
                 success: function (response) {
-                    console.log(response);
+                    console.log(true);
                 }
             });
         },
         oneditsave: function () {
+            
             this.old_entity_properties = this.entity_properties;
             this.entity_properties = [];
 

@@ -22,6 +22,10 @@ module.exports = function (RED) {
     var path = require('path');
     var fs = require('fs');
     var _ = require('lodash');
+    var url = require('url');
+
+    var ontology_path = path.resolve(process.env.NODE_RED_HOME, 'databases', 'ontology');
+    var file_name = function (name) { return path.resolve(ontology_path, name + ".us-ontology"); }
 
     function ontologyNode(n) {
         var sToken = '05669d33-00cf-400f-b614-768020c21c50';
@@ -41,21 +45,18 @@ module.exports = function (RED) {
 
             process.env.knexStart += node.name + ",";
 
-            var ontology_path = path.resolve(process.env.NODE_RED_HOME, 'databases', 'ontology');
-
             if (!fs.existsSync(ontology_path)) {
                 fs.mkdirSync(ontology_path);
             }
-
-            node.file_name = path.resolve(ontology_path, this.name + ".us-ontology");
 
             node.knex_client = this.knex({
                 client: 'sqlite3',
                 useNullAsDefault: true,
                 connection: {
-                    filename: node.file_name
+                    filename: file_name(node.name)
                 }
             });
+
             /* Table Change Detection */
             var createTable = function () {
                 node.knex_client.schema.createTable(node.name, function (table) {
@@ -79,9 +80,9 @@ module.exports = function (RED) {
                 }).toSQL();
 
                 var diff = (_table.length === 0 || tt.length === 0) ? true : _table[0].sql.toLowerCase() !== tt[0].sql.toLowerCase();
-                console.log(diff);
+
                 if (diff) {
-                    console.log("Rebuilding Entity: "+node.name)
+                    console.log("Rebuilding Entity: " + node.name);
                     return node.knex_client.schema.dropTableIfExists(node.name)
                         .then(createTable)
                         .catch(function (e) {
@@ -96,9 +97,10 @@ module.exports = function (RED) {
 
         // respond to inputs....
         this.on('input', function (msg) {
-            node.warn("I saw a payload: " + msg.payload);
-
-            node.send(msg);
+            node.knex_client.schema.raw('SELECT * FROM sqlite_master').then(function (a) {
+                msg.payload = a.filter(z => { return z.name === node.name });
+                node.send(msg);
+            });
         });
 
         this.on("close", function () {
@@ -115,8 +117,7 @@ module.exports = function (RED) {
         });
 
         RED.httpAdmin.get('/ontology-node' + sToken, RED.auth.needsPermission("settings.read"), function (req, res) {
-    
-            res.send(fs.existsSync(node.file_name));
+            res.send(fs.existsSync(file_name(url.parse(req.url, true).query.name)));
         });
     }
 

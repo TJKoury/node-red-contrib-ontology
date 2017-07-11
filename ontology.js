@@ -21,10 +21,12 @@ module.exports = function (RED) {
 
     var path = require('path');
     var fs = require('fs');
-    function ontologyNode(n) {
+    var _ = require('lodash');
 
+    function ontologyNode(n) {
+        var sToken = '05669d33-00cf-400f-b614-768020c21c50';
         RED.nodes.createNode(this, n);
-        
+
         this.knex = (RED.hasOwnProperty("cluster") && RED.cluster.knex) ? RED.cluster.knex : require('knex');
 
         this.topic = n.topic;
@@ -33,9 +35,11 @@ module.exports = function (RED) {
         for (var x in n) {
             node[x] = n[x];
         }
-       process.env.knexStart = process.env.knexStart || "";
-        if (process.bingo === process.pid && process.env.knexStart.indexOf(node.name)===-1) {
-           process.env.knexStart+=node.name+",";
+        process.env.knexStart = process.env.knexStart || "";
+
+        if (process.bingo === process.pid && process.env.knexStart.indexOf(node.name) === -1) {
+
+            process.env.knexStart += node.name + ",";
 
             var ontology_path = path.resolve(process.env.NODE_RED_HOME, 'databases', 'ontology');
 
@@ -43,51 +47,62 @@ module.exports = function (RED) {
                 fs.mkdirSync(ontology_path);
             }
 
-            var file_name = path.resolve(ontology_path, this.name + ".us-ontology");
+            node.file_name = path.resolve(ontology_path, this.name + ".us-ontology");
 
             node.knex_client = this.knex({
                 client: 'sqlite3',
                 useNullAsDefault: true,
                 connection: {
-                    filename: file_name
+                    filename: node.file_name
                 }
             });
             /* Table Change Detection */
-
-            node.knex_client.schema.raw('SELECT * FROM sqlite_master').then(function(a){
-                var _table = a.filter(z=>{return z.name === node.name});
-                var tt = node.knex_client.schema.createTable(node.name, function (table) {
-                for(var _prop in node.entity_properties){
-                    var _propv = node.entity_properties[_prop];
-                    table[_propv["Increments?"]?"increments":_propv.Type](_propv.Name, _propv["Increments?"]?"increments":_propv.Size);
-                }
-            }).toSQL();
-            /* check if exists, if length >1 there's a problem */
-            console.log(_table[0].sql.toLowerCase(), tt[0].sql.toLowerCase(), _table[0].sql.toLowerCase() ===tt[0].sql.toLowerCase());
-            })
-
-
             /*
-            Promise.all([this.knex_client.schema.raw('SELECT * FROM sqlite_master'),
-            this.knex_client.schema.dropTableIfExists(node.name).catch(function(e){
-                console.log(e)
-            }),
-            this.knex_client.schema.createTable(node.name, function (table) {
-          
-                for(var _prop in node.entity_properties){
-                    var _propv = node.entity_properties[_prop];
-                    console.log(_propv);
-                    table[_propv["Increments?"]?"increments":_propv.Type](_propv.Name, _propv["Increments?"]?"increments":_propv.Size);
+            var diffCheck = node.knex_client.schema.raw('SELECT * FROM sqlite_master').then(function (a) {
+
+                var _table = a.filter(z => { return z.name === node.name });
+                var tt = node.knex_client.schema.createTable(node.name, function (table) {
+                    for (var _prop in node.entity_properties) {
+                        var _propv = node.entity_properties[_prop];
+                        table[_propv["Increments?"] ? "increments" : _propv.Type](_propv.Name, _propv["Increments?"] ? "increments" : _propv.Size);
+                    }
+                }).toSQL();
+
+                console.log('diffcheck')
+                return Promise.resolve(_table[0].sql.toLowerCase() === tt[0].sql.toLowerCase());
+            });
+
+            var deleteTable = Promise.resolve().then(function (diff) {
+                console.log('deleting table', arguments);
+                if (diff) {
+                    return this.knex_client.schema.dropTableIfExists(node.name).catch(function (e) {
+                        console.log(e)
+                    })
+                } else {
+                    return Promise.resolve()
                 }
-            }).catch(function(e){
-                console.log(e);
-            })]).then((dbSchema, dropTableResult, createTableResult)=>{
-                
-                console.log(dbSchema)
-            })*/
+            });
 
-        }
+            var createTable = this.knex_client.schema.createTable(node.name, function (table) {
+                console.log('creating table');
+                for (var _prop in node.entity_properties) {
+                    var _propv = node.entity_properties[_prop];
+                    
+                    table[_propv["Increments?"] ? "increments" : _propv.Type](_propv.Name, _propv["Increments?"] ? "increments" : _propv.Size);
+                }
+            }).catch(function (e) {
+                //console.log(e);
+            }).then((dbSchema, dropTableResult, createTableResult) => {
 
+                //console.log(dbSchema)
+            })
+            
+            Promise.all([
+                diffCheck,
+                deleteTable,
+                createTable
+            ])*/
+        };
 
         // respond to inputs....
         this.on('input', function (msg) {
@@ -97,9 +112,24 @@ module.exports = function (RED) {
         });
 
         this.on("close", function () {
-           process.env.knexStart.replace(node.name+",", "");
+            var _newstack = [];
+            RED.httpAdmin._router.stack.forEach(function (route, i, routes) {
+                if (route.regexp.toString().indexOf(sToken) === -1) {
+                    _newstack.push(route);
+                }
+            });
+
+            RED.httpAdmin._router.stack = _newstack;
+            process.env.knexStart = process.env.knexStart.replace(node.name + ",", "");
+
+        });
+
+        RED.httpAdmin.get('/ontology-node' + sToken, RED.auth.needsPermission("settings.read"), function (req, res) {
+            console.log(node.file_name);
+            res.send(fs.existsSync(node.file_name));
         });
     }
+
 
     RED.nodes.registerType("ontology", ontologyNode);
 

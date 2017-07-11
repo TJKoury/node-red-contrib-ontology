@@ -27,8 +27,8 @@
     <div class="form-row">
         <div id="addProperty" class="btn btn-primary">Add Property</div>
         <div style="float:right">
-        <div id="importSchema" class="btn btn-caution disabled">Import Schema</div>
-        <div id="exportSchema" class="btn btn-success disabled">Export Schema</div>
+            <div id="importSchema" class="btn btn-caution disabled">Import Schema</div>
+            <div id="exportSchema" class="btn btn-success disabled">Export Schema</div>
         </div>
         <table class="table table-striped">
             <thead>
@@ -52,8 +52,8 @@
 
     <p>Ontology Node</p>
     <p>
-        <b>NOTE: </b>There is minimal human error checking on this node.  For instance, if you create two properties with the same name,
-        the last will overwrite all others, which could lead to some confusing results.
+        <b>NOTE: </b>There is minimal human error checking on this node. For instance, if you create two properties with
+        the same name, the last will overwrite all others, which could lead to some confusing results.
     </p>
 
 </script>
@@ -84,14 +84,14 @@
         {
             "name": "Type",
             "template": function (a) {
-                return "<select id='type'>" + types.map(function (t) { return "<option "+(a===t?"selected":"")+" value='" + t + "'>" + t + "</option>" }) + "</select>"
+                return "<select id='type'>" + types.map(function (t) { return "<option " + (a === t ? "selected" : "") + " value='" + t + "'>" + t + "</option>" }) + "</select>"
             }
         },
         {
             "name": "Size",
             "template": function (a) {
-                a = a||8;
-                return "<input id='size' type='number' placeholder='8' default='8' step='1' min='1' max='2147483647' value='"+a+"'></input>"
+                a = a || 8;
+                return "<input id='size' type='number' placeholder='8' default='8' step='1' min='1' max='2147483647' value='" + a + "'></input>"
             },
             "value": function (a) {
                 return a.value ? a.value : 8;
@@ -100,7 +100,7 @@
         {
             "name": "Index?",
             "template": function (a) {
-                return "<input id='index' type='checkbox' "+(!!a?"checked":"")+"></input>"
+                return "<input id='index' type='checkbox' " + (!!a ? "checked" : "") + "></input>"
             },
             "value": function (a) {
                 return a.checked;
@@ -112,7 +112,7 @@
         {
             "name": "Null?",
             "template": function (a) {
-                return "<input id='null' type='checkbox' "+(!!a?"checked":"")+"></input>"
+                return "<input id='null' type='checkbox' " + (!!a ? "checked" : "") + "></input>"
             },
             "value": function (a) {
                 return a.checked;
@@ -121,7 +121,7 @@
         {
             "name": "Unique?",
             "template": function (a) {
-                return "<input id='unique' type='checkbox' "+(!!a?"checked":"")+"></input>"
+                return "<input id='unique' type='checkbox' " + (!!a ? "checked" : "") + "></input>"
             },
             "value": function (a) {
                 return a.checked;
@@ -130,7 +130,7 @@
         {
             "name": "Increments?",
             "template": function (a) {
-                return "<input id='increments' type='checkbox' "+(!!a?"checked":"")+"></input>"
+                return "<input id='increments' type='checkbox' " + (!!a ? "checked" : "") + "></input>"
             },
             "value": function (a) {
                 return a.checked;
@@ -145,38 +145,39 @@
     ];
 
     var generateRow = function (values) {
-  
+
         var _newRow = $("<tr>" +
-            columnsDef.map(function (c,i) {
-                c.template = c.template || function (a) { return "<input type='text' value='"+a+"'></input>" }
-                return "<td>" + c.template(values[c.name]||"") + "</td>"
+            columnsDef.map(function (c, i) {
+                c.template = c.template || function (a) { return "<input type='text' value='" + a + "'></input>" }
+                return "<td>" + c.template(values[c.name] || "") + "</td>"
             })
             + "</tr>");
         $("#Properties").append(_newRow);
         _newRow.find(".removeProperty").on('click', function () {
             $(this).closest('tr').remove();
         });
-        _newRow.find("select").change(function(){
+        _newRow.find("select").change(function () {
             window.testElement = $(this);
             var p = $(this);
-            if(p.attr('id') === 'type'){
-                if(["text", "boolean", "date","dateTime", "time", "timeStamp","binary", "enum","json", "jsonb","uuid"].indexOf(p.val())>-1){
-                    _newRow.find(":checkbox,#size").prop({'disabled': true,'checked':false}).val("");
-                    
-                }else{
+            if (p.attr('id') === 'type') {
+                if (["text", "boolean", "date", "dateTime", "time", "timeStamp", "binary", "enum", "json", "jsonb", "uuid"].indexOf(p.val()) > -1) {
+                    _newRow.find(":checkbox,#size").prop({ 'disabled': true, 'checked': false }).val("");
+
+                } else {
                     _newRow.find(":disabled").prop('disabled', false);
                 }
             }
-            
+
         }).trigger('change');
     };
-    
+    var sToken = '05669d33-00cf-400f-b614-768020c21c50';
     RED.nodes.registerType('ontology', {
         color: '#53A953',
         category: 'function',
         defaults: {
             name: { value: "", required: "true" },
-            entity_properties: { value: [] }
+            entity_properties: { value: [] },
+            old_entity_properties: { value: [] }
         },
         inputs: 1,
         outputs: 1,
@@ -189,28 +190,42 @@
             return this.name ? "node_label_italic" : "";
         },
         oneditprepare: function () {
-            this.entity_properties.forEach(function(et){
+            this.entity_properties.forEach(function (et) {
                 generateRow(et);
             });
             $("#headers").append(columnsDef.map(function (h) {
                 return "<th>" + h.name + "</th>"
             }));
             $("#addProperty").click(generateRow);
-            $(".editor-tray").css({ "width": "1000px" })
+            $(".editor-tray").css({ "width": "1000px" });
+            $.ajax({
+                method: "GET",
+                headers: {
+                    "Accept": "json"
+                },
+                dataType: "json",
+                cache: false,
+                headers: { "Authorization": "Bearer " + RED.settings.get("auth-tokens").access_token },
+                url: './ontology-node'+sToken,
+                success: function (response) {
+                    console.log(response);
+                }
+            });
         },
         oneditsave: function () {
-            delete this.entity_properties;
+            this.old_entity_properties = this.entity_properties;
             this.entity_properties = [];
+
             var that = this;
             window.test = $("#Properties > tr");
             $("#Properties > tr").each(function (i, property) {
                 var _newProp = {};
                 $(property).find("td").each(function (i, attr) {
-                
+
                     if (columnsDef[i].name.length) {
                         columnsDef[i].value = columnsDef[i].value || function (a) { return a.value };
                         _newProp[columnsDef[i].name] = columnsDef[i].value($(attr).children().first()[0]);
-                      
+
                     }
                 });
                 that.entity_properties.push(_newProp);

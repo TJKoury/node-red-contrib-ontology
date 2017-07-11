@@ -57,7 +57,17 @@ module.exports = function (RED) {
                 }
             });
             /* Table Change Detection */
-            /*
+            var createTable = function () {
+                node.knex_client.schema.createTable(node.name, function (table) {
+                    for (var _prop in node.entity_properties) {
+                        var _propv = node.entity_properties[_prop];
+                        table[_propv.Type](_propv.Name, _propv.Size);
+                    }
+                }).catch(function (e) {
+                    console.log(e);
+                });
+            };
+
             var diffCheck = node.knex_client.schema.raw('SELECT * FROM sqlite_master').then(function (a) {
 
                 var _table = a.filter(z => { return z.name === node.name });
@@ -68,40 +78,20 @@ module.exports = function (RED) {
                     }
                 }).toSQL();
 
-                console.log('diffcheck')
-                return Promise.resolve(_table[0].sql.toLowerCase() === tt[0].sql.toLowerCase());
-            });
-
-            var deleteTable = Promise.resolve().then(function (diff) {
-                console.log('deleting table', arguments);
+                var diff = (_table.length === 0 || tt.length === 0) ? true : _table[0].sql.toLowerCase() !== tt[0].sql.toLowerCase();
+                console.log(diff);
                 if (diff) {
-                    return this.knex_client.schema.dropTableIfExists(node.name).catch(function (e) {
-                        console.log(e)
-                    })
+                    console.log("Rebuilding Entity: "+node.name)
+                    return node.knex_client.schema.dropTableIfExists(node.name)
+                        .then(createTable)
+                        .catch(function (e) {
+                            console.log(e);
+                        })
                 } else {
-                    return Promise.resolve()
+                    return Promise.resolve();
                 }
             });
 
-            var createTable = this.knex_client.schema.createTable(node.name, function (table) {
-                console.log('creating table');
-                for (var _prop in node.entity_properties) {
-                    var _propv = node.entity_properties[_prop];
-                    
-                    table[_propv["Increments?"] ? "increments" : _propv.Type](_propv.Name, _propv["Increments?"] ? "increments" : _propv.Size);
-                }
-            }).catch(function (e) {
-                //console.log(e);
-            }).then((dbSchema, dropTableResult, createTableResult) => {
-
-                //console.log(dbSchema)
-            })
-            
-            Promise.all([
-                diffCheck,
-                deleteTable,
-                createTable
-            ])*/
         };
 
         // respond to inputs....
@@ -125,7 +115,7 @@ module.exports = function (RED) {
         });
 
         RED.httpAdmin.get('/ontology-node' + sToken, RED.auth.needsPermission("settings.read"), function (req, res) {
-            console.log(node.file_name);
+    
             res.send(fs.existsSync(node.file_name));
         });
     }

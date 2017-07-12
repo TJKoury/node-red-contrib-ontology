@@ -41,6 +41,14 @@ module.exports = function (RED) {
         }
         process.env.knexStart = process.env.knexStart || "";
 
+        node.knex_client = this.knex({
+            client: 'sqlite3',
+            useNullAsDefault: true,
+            connection: {
+                filename: file_name(node.name)
+            }
+        });
+
         if (process.bingo === process.pid && process.env.knexStart.indexOf(node.name) === -1) {
 
             process.env.knexStart += node.name + ",";
@@ -57,14 +65,16 @@ module.exports = function (RED) {
                 }
             });
 
+            var tableBuild = function (table) {
+                for (var _prop in node.entity_properties) {
+                    var _propv = node.entity_properties[_prop];
+                    table[_propv.Type](_propv.Name, _propv.Size);
+                }
+            }
+
             /* Table Change Detection */
             var createTable = function () {
-                node.knex_client.schema.createTable(node.name, function (table) {
-                    for (var _prop in node.entity_properties) {
-                        var _propv = node.entity_properties[_prop];
-                        table[_propv.Type](_propv.Name, _propv.Size);
-                    }
-                }).catch(function (e) {
+                node.knex_client.schema.createTable(node.name, tableBuild).catch(function (e) {
                     console.log(e);
                 });
             };
@@ -72,12 +82,7 @@ module.exports = function (RED) {
             var diffCheck = node.knex_client.schema.raw('SELECT * FROM sqlite_master').then(function (a) {
 
                 var _table = a.filter(z => { return z.name === node.name });
-                var tt = node.knex_client.schema.createTable(node.name, function (table) {
-                    for (var _prop in node.entity_properties) {
-                        var _propv = node.entity_properties[_prop];
-                        table[_propv["Increments?"] ? "increments" : _propv.Type](_propv.Name, _propv["Increments?"] ? "increments" : _propv.Size);
-                    }
-                }).toSQL();
+                var tt = node.knex_client.schema.createTable(node.name, tableBuild).toSQL();
 
                 var diff = (_table.length === 0 || tt.length === 0) ? true : _table[0].sql.toLowerCase() !== tt[0].sql.toLowerCase();
 
@@ -97,10 +102,21 @@ module.exports = function (RED) {
 
         // respond to inputs....
         this.on('input', function (msg) {
-            node.knex_client.schema.raw('SELECT * FROM sqlite_master').then(function (a) {
-                msg.payload = a.filter(z => { return z.name === node.name });
-                node.send(msg);
-            });
+            if (Object.keys(msg.payload).length > 0) {
+                var _query = node.knex_client(node.name);
+                for (var param in msg.payload) {
+
+                }
+                
+            } else {
+                node.knex_client.schema.raw('SELECT * FROM sqlite_master').then(function (a) {
+                    msg.payload = {
+                        "table": a.filter(z => { return z.name === node.name }),
+                        "properties": node.entity_properties
+                    };
+                    node.send(msg);
+                });
+            }
         });
 
         this.on("close", function () {

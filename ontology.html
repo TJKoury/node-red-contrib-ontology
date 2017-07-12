@@ -41,6 +41,11 @@
 
     </div>
     <br/>
+    <hr/>
+    <div class="form-row">
+
+
+    </div>
     <!--<div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Timestamps?</label>
         <input type="checkbox" style="width:25px" id="node-input-timestamps" placeholder="Timestamps">
@@ -56,7 +61,7 @@
         <b>WARNING:</b> Any change to the ontology completely erases the database on disk.  <b>ALL DATA WILL BE LOST.</b>
         <hr/>
         <b>NOTE:</b> There is minimal human error checking on this node. For instance, if you create two properties with
-        the same name, the last will overwrite all others, which could lead to some confusing results.
+        the same name, the last will overwrite the first, which could lead to some confusing results.
     </p>
 
 </script>
@@ -195,7 +200,13 @@
                 return "<th>" + h.name + "</th>"
             }));
             $("#addProperty").click(generateRow);
-            $(".editor-tray").css({ "width": "1000px" });
+            function getWidth(){
+                return window.innerWidth - $('#sidebar-content').width() - $("#sidebar-separator").width();
+            }
+            $(".editor-tray").css({ "width": getWidth() });
+            window.onresize = function(){
+                $(".editor-tray").css({ "width": getWidth() });
+            }
 
             $.ajax({
                 method: "GET",

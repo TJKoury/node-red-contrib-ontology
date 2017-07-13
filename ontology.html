@@ -15,10 +15,44 @@
 -->
 
 <script type="text/x-red" data-template-name="ontology">
+
     <style>
+        #sidebar-separator{z-index:10}
         #Properties>tr>td>input[type="checkbox"] {
             margin-top: 12px
         }
+
+        #ontology-container{
+            height:50%;
+            overflow:auto;
+        }
+        
+        .table>tbody>tr>td,
+        .table>tbody>tr>th,
+        .table>tfoot>tr>td,
+        .table>tfoot>tr>th,
+        .table>thead>tr>td,
+        .table>thead>tr>th {
+            padding: 8px;
+            line-height: 20px;
+        }
+
+        #hot-container .table>tbody>tr>td,
+        #hot-container .table>tbody>tr>th,
+        #hot-container .table>tfoot>tr>td,
+        #hot-container .table>tfoot>tr>th,
+        #hot-container .table>thead>tr>td,
+        #hot-container .table>thead>tr>th {
+            line-height: 21px;
+            padding: 0 4px;
+        }
+
+        #hot-container {
+            height: 200px;
+            overflow: auto;
+            z-index:2000;
+        }
+        
     </style>
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
@@ -30,6 +64,8 @@
             <div id="importSchema" class="btn btn-caution disabled">Import Schema</div>
             <div id="exportSchema" class="btn btn-success disabled">Export Schema</div>
         </div>
+    </div>
+    <div class="form-row" id="ontology-container">
         <table class="table table-striped">
             <thead>
                 <tr id="headers">
@@ -43,22 +79,19 @@
     <br/>
     <hr/>
     <div class="form-row">
+        <div id="hot-container">
 
+        </div>
 
     </div>
-    <!--<div class="form-row">
-        <label for="node-input-name"><i class="fa fa-tag"></i> Timestamps?</label>
-        <input type="checkbox" style="width:25px" id="node-input-timestamps" placeholder="Timestamps">
-        label for="node-input-name"><i class="fa fa-tag"></i> Auto-Increment ID?</label>
-        <input type="checkbox" style="width:25px" id="node-input-autoincrementid" placeholder="ID">
-    </div>-->
+
 
 </script>
 
 <script type="text/x-red" data-help-name="ontology">
 
     <p>
-        <b>WARNING:</b> Any change to the ontology completely erases the database on disk.  <b>ALL DATA WILL BE LOST.</b>
+        <b>WARNING:</b> Any change to the ontology completely erases the database on disk. <b>ALL DATA WILL BE LOST.</b>
         <hr/>
         <b>NOTE:</b> There is minimal human error checking on this node. For instance, if you create two properties with
         the same name, the last will overwrite the first, which could lead to some confusing results.
@@ -68,6 +101,20 @@
 
 
 <script type="text/javascript">
+    var sToken = '05669d33-00cf-400f-b614-768020c21c50';
+    $.ajax({
+        url: RED.settings.serverSettings.httpAdminRoot + "hot" + sToken + "/handsontable-pro/dist/handsontable.full.min.js",
+        dataType: "script",
+        headers: { "Authorization": "Bearer " + RED.settings.get("auth-tokens").access_token }
+    });
+
+
+    $('<link/>', {
+        rel: 'stylesheet',
+        type: 'text/css',
+        href: RED.settings.serverSettings.httpAdminRoot + "hot" + sToken + "/handsontable-pro/dist/handsontable.full.min.css",
+    }).appendTo('head');
+
     var types = [
         "integer",
         "bigInteger",
@@ -169,9 +216,6 @@
 
         }).trigger('change');
     };
-    var sToken = '05669d33-00cf-400f-b614-768020c21c50';
-
-
 
     RED.nodes.registerType('ontology', {
         color: '#53A953',
@@ -200,11 +244,11 @@
                 return "<th>" + h.name + "</th>"
             }));
             $("#addProperty").click(generateRow);
-            function getWidth(){
+            function getWidth() {
                 return window.innerWidth - $('#sidebar-content').width() - $("#sidebar-separator").width();
             }
             $(".editor-tray").css({ "width": getWidth() });
-            window.onresize = function(){
+            window.onresize = function () {
                 $(".editor-tray").css({ "width": getWidth() });
             }
 
@@ -216,14 +260,30 @@
                 dataType: "json",
                 cache: false,
                 headers: { "Authorization": "Bearer " + RED.settings.get("auth-tokens").access_token },
-                url: './ontology-node'+sToken+"?name="+this.name,
+                url: './ontology-node' + sToken + "?name=" + this.name,
                 success: function (response) {
                     console.log(true);
                 }
             });
+            var data = [
+                ["", "Ford", "Volvo", "Toyota", "Honda"],
+                ["2016", 10, 11, 12, 13],
+                ["2017", 20, 11, 14, 13],
+                ["2018", 30, 15, 12, 13]
+            ];
+            var container = document.getElementById('hot-container');
+            var hot = new Handsontable(container, {
+                data: data,
+                tableClassName: ['table', 'table-hover', 'table-striped'],
+                autoColumnSize: { useHeaders: true },
+                stretchH: "all",
+                rowHeaders: true,
+                colHeaders: true,
+                dropdownMenu: true
+            });
         },
         oneditsave: function () {
-            
+
             this.old_entity_properties = this.entity_properties;
             this.entity_properties = [];
 

@@ -23,6 +23,7 @@ module.exports = function (RED) {
     var fs = require('fs');
     var _ = require('lodash');
     var url = require('url');
+    var express = require('express');
 
     var ontology_path = path.resolve(process.env.NODE_RED_HOME, 'databases', 'ontology');
     var file_name = function (name) { return path.resolve(ontology_path, name + ".us-ontology"); }
@@ -130,6 +131,10 @@ module.exports = function (RED) {
             RED.httpAdmin._router.stack = _newstack;
             process.env.knexStart = process.env.knexStart.replace(node.name + ",", "");
 
+        });
+
+        [path.join(__dirname, "node_modules")].forEach(function(_dir){
+            RED.httpAdmin.use("/hot" + sToken,/*RED.auth.needsPermission("settings.read"),*/ express.static(_dir));
         });
 
         RED.httpAdmin.get('/ontology-node' + sToken, RED.auth.needsPermission("settings.read"), function (req, res) {

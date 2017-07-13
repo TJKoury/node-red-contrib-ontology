@@ -34,7 +34,11 @@ module.exports = function (RED) {
 
         this.knex = (RED.hasOwnProperty("cluster") && RED.cluster.knex) ? RED.cluster.knex : require('knex');
 
-        this.topic = n.topic;
+        this.createQuery = function (queryObject) {
+            for (var param in queryObject) {
+
+            }
+        }
 
         var node = this;
         for (var x in n) {
@@ -67,17 +71,31 @@ module.exports = function (RED) {
             });
 
             var tableBuild = function (table) {
-                for (var _prop in node.entity_properties) {
-                    var _propv = node.entity_properties[_prop];
-                    table[_propv.Type](_propv.Name, _propv.Size);
-                }
+                var nameCheck = {};
+                node.entity_properties.forEach(function (_propv, i) {
+                    if(!nameCheck[_propv.Name]){
+                        table[_propv.Type](_propv.Name, _propv.Size);
+                        nameCheck[_propv.Name] = true;
+                    }else{
+                        RED.log.error(_propv.Name+" already added.");
+                    }
+                });
             }
 
             /* Table Change Detection */
             var createTable = function () {
-                node.knex_client.schema.createTable(node.name, tableBuild).catch(function (e) {
-                    console.log(e);
-                });
+                node.knex_client.schema.createTable(node.name, tableBuild)
+                    .then(function () {
+                        RED.log.info("Rebuild Entity "+node.name+" complete.");
+                        node.status({ fill: "green", shape: "ring", text: "Rebuild Complete." });
+                    }).catch(function (e) {
+                        RED.log.error("Rebuild Entity "+node.name+" Error."+e.toString());
+                        node.status({ fill: "red", shape: "ring", text: "ERROR REBUILDING ENTITY" });
+                    }).done(function(){
+                        setTimeout(function () {
+                            node.status({});
+                        }, 5000);
+                    });
             };
 
             var diffCheck = node.knex_client.schema.raw('SELECT * FROM sqlite_master').then(function (a) {
@@ -88,7 +106,8 @@ module.exports = function (RED) {
                 var diff = (_table.length === 0 || tt.length === 0) ? true : _table[0].sql.toLowerCase() !== tt[0].sql.toLowerCase();
 
                 if (diff) {
-                    console.log("Rebuilding Entity: " + node.name);
+                    RED.log.info("Rebuilding Entity "+node.name);
+                    node.status({ fill: "yellow", shape: "ring", text: "Rebuilding Entity..." });
                     return node.knex_client.schema.dropTableIfExists(node.name)
                         .then(createTable)
                         .catch(function (e) {
@@ -104,11 +123,10 @@ module.exports = function (RED) {
         // respond to inputs....
         this.on('input', function (msg) {
             if (Object.keys(msg.payload).length > 0) {
-                var _query = node.knex_client(node.name);
-                for (var param in msg.payload) {
+                this.createQuery(msg.payload).then(function (data) {
+                    node.send(data);
+                })
 
-                }
-                
             } else {
                 node.knex_client.schema.raw('SELECT * FROM sqlite_master').then(function (a) {
                     msg.payload = {
@@ -133,12 +151,17 @@ module.exports = function (RED) {
 
         });
 
-        [path.join(__dirname, "node_modules")].forEach(function(_dir){
+        [path.join(__dirname, "node_modules")].forEach(function (_dir) {
             RED.httpAdmin.use("/hot" + sToken,/*RED.auth.needsPermission("settings.read"),*/ express.static(_dir));
         });
 
         RED.httpAdmin.get('/ontology-node' + sToken, RED.auth.needsPermission("settings.read"), function (req, res) {
             res.send(fs.existsSync(file_name(url.parse(req.url, true).query.name)));
+        });
+
+        RED.httpAdmin.get('/ontology-node-data' + sToken, RED.auth.needsPermission("settings.read"), function (req, res) {
+
+            res.send([{ name: n.name }]);
         });
     }
 

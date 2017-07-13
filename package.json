@@ -21,5 +21,8 @@
   "homepage": "https://github.com/TJKoury/node-red-contrib-ontology#readme",
   "devDependencies": {
     "handsontable-pro": "git+ssh://git@handsontable/handsontable/handsontable-pro.git"
+  },
+  "dependencies": {
+    "json-ld": "^0.1.0"
   }
 }

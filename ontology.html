@@ -17,16 +17,19 @@
 <script type="text/x-red" data-template-name="ontology">
 
     <style>
-        #sidebar-separator{z-index:10}
+        #sidebar-separator {
+            z-index: 10
+        }
+
         #Properties>tr>td>input[type="checkbox"] {
             margin-top: 12px
         }
 
-        #ontology-container{
-            height:50%;
-            overflow:auto;
+        #ontology-container {
+            height: 50%;
+            overflow: auto;
         }
-        
+
         .table>tbody>tr>td,
         .table>tbody>tr>th,
         .table>tfoot>tr>td,
@@ -50,9 +53,8 @@
         #hot-container {
             height: 200px;
             overflow: auto;
-            z-index:2000;
+            z-index: 2000;
         }
-        
     </style>
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
@@ -92,6 +94,7 @@
 
     <p>
         <b>WARNING:</b> Any change to the ontology completely erases the database on disk. <b>ALL DATA WILL BE LOST.</b>
+        This will be fixed in a later update to support migrations.
         <hr/>
         <b>NOTE:</b> There is minimal human error checking on this node. For instance, if you create two properties with
         the same name, the last will overwrite the first, which could lead to some confusing results.
@@ -262,24 +265,42 @@
                 headers: { "Authorization": "Bearer " + RED.settings.get("auth-tokens").access_token },
                 url: './ontology-node' + sToken + "?name=" + this.name,
                 success: function (response) {
-                    console.log(true);
+
                 }
             });
-            var data = [
-                ["", "Ford", "Volvo", "Toyota", "Honda"],
-                ["2016", 10, 11, 12, 13],
-                ["2017", 20, 11, 14, 13],
-                ["2018", 30, 15, 12, 13]
-            ];
-            var container = document.getElementById('hot-container');
-            var hot = new Handsontable(container, {
-                data: data,
-                tableClassName: ['table', 'table-hover', 'table-striped'],
-                autoColumnSize: { useHeaders: true },
-                stretchH: "all",
-                rowHeaders: true,
-                colHeaders: true,
-                dropdownMenu: true
+
+            $.ajax({
+                method: "GET",
+                headers: {
+                    "Accept": "json"
+                },
+                dataType: "json",
+                cache: false,
+                headers: { "Authorization": "Bearer " + RED.settings.get("auth-tokens").access_token },
+                url: './ontology-node-data' + sToken + "?name=" + this.name
+            }).done(function (data) {
+
+                var container = document.getElementById('hot-container');
+                var hot = new Handsontable(container, {
+                    data: data,
+                    tableClassName: ['table', 'table-hover', 'table-striped'],
+                    autoColumnSize: { useHeaders: true },
+                    stretchH: "all",
+                    fixedRowsTop: 1,
+                    rowHeaders: true,
+                    colHeaders: true,
+                    colHeaders: ['ID', 'First Name', 'Last Name', 'Address'],
+                    columns: [
+                        { data: 'id' },
+                        { data: 'name.first' },
+                        { data: 'name.last' },
+                        { data: 'address' }
+                    ],
+                    //dropdownMenu: true
+                });
+                hot.addHook('afterCreateCol', function () {
+                    console.log(arguments)
+                })
             });
         },
         oneditsave: function () {
